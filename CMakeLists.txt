@@ -73,7 +73,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   # control_msgs
-  # std_msgs
+  std_msgs
   std_srvs
   # trajectory_msgs
 )
