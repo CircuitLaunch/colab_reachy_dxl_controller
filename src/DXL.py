@@ -106,7 +106,7 @@ MX64_RAM_GOAL_TORQUE = 71
 
 # Flags for shutdown and alarmLED registers
 ERROR_BIT_VOLTAGE = 1
-ERROR_BIT_ANGLE_LIMIt = 2
+ERROR_BIT_ANGLE_LIMIT = 2
 ERROR_BIT_OVERHEATING = 4
 ERROR_BIT_RANGE = 8
 ERROR_BIT_CHECKSUM = 16
@@ -126,6 +126,20 @@ class DXLException(Exception):
         return f"DXL Exception caught on line {self.line} of {self.file}: {self.msg}"
 
 class DXLPort:
+    resultCodeDescriptors = [
+        dxl.COMM_SUCCESS: 'OK',
+        dxl.COMM_PORT_BUSY: 'PORT_BUSY',
+        dxl.COMM_TX_FAIL: 'TX_FAIL',
+        dxl.COMM_RX_FAIL: 'RX_FAIL',
+        dxl.COMM_TX_ERROR: 'TX_ERROR',
+        dxl.COMM_RX_WAITING: 'RX_WAITING',
+        dxl.COMM_RX_TIMEOUT: 'RX_TIMEOUT',
+        dxl.COMM_RX_CORRUPT: 'RX_CORRUPT',
+        dxl.COMM_NOT_AVAILABLE: 'NOT_AVAILABLE'
+    ]
+
+    errorBitDescriptors = ['INSTURCTION', 'OVERLOAD', 'CHECKSUM', 'RANGE', 'OVERHEAT', 'ANGLE', 'VOLTAGE']
+
     def __init__(self, address: str, baud: int = 57600):
         self.lock = Lock()
         self.baud = baud
@@ -199,10 +213,18 @@ class DXLPort:
         return g_model_str_to_code_dict[name]
 
     def resultString(self, result: int):
-        return self.packetHandler.getTxRxResult(result)
+        if result in self.__class__.resultCodeDescriptors:
+            return self.__class__.resultCodeDescriptors[result]
+        return "UNKNOWN_ERROR"
 
     def errorString(self, error: int):
-        return self.packetHandler.getTxRxPacketEror(error)
+        bit = 1
+        errorStr = ""
+        for errorBitDescriptor in self.__class__.errorBitDescriptors:
+            if error & bit:
+                errorStr += ('' if errorStr == '' else ' ') + errorBitDescriptor
+            bit <<= 1
+        return errorStr
 
     def ping(self, id: int):
         with self.lock:
@@ -573,9 +595,6 @@ class DXL:
         self.result, self.error = self.port.writeUInt16(self.id, RAM_PUNCH, value)
 
 class DXL_AX(DXL):
-    def __init__(self, port: DXLPort, id: int, model: int):
-        super().__init__(self, port, id, model)
-
     @DXL.stepResolution.getter # Python's oop implementation is so fucking weird
     def stepResolution(self):
         return 0.29
