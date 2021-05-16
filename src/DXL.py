@@ -573,9 +573,6 @@ class DXL:
         self.result, self.error = self.port.writeUInt16(self.id, RAM_PUNCH, value)
 
 class DXL_AX(DXL):
-    def __init__(self, port: DXLPort, id: int, model: int):
-        super().__init__(self, port, id, model)
-
     @DXL.stepResolution.getter # Python's oop implementation is so fucking weird
     def stepResolution(self):
         return 0.29
