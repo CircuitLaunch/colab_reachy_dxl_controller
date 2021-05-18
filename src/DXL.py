@@ -1,10 +1,52 @@
+# Copyright 2021 Edward Janne
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors
+# may be used to endorse or promote products derived from this software without
+# specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+################################################################################
+#
+# Object oriented Python Wrapper for Dynamixel Protocol 1.0 API.
+#
+# This module is thread safe within the same Python Kernel.
+# This module is NOT multi-process safe.
+#
+################################################################################
+
+################################################################################
+# Import dependencies
 import dynamixel_sdk as dxl
+
 from threading import Lock
 import inspect
 
-# These codes are available in the EEPROM Control Table listings for
-# each device at https://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_workbench/#supported-dynamixel
+################################################################################
+# These codes are available in the EEPROM & RAM Control Table listings for each
+# device at https://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_workbench/#supported-dynamixel
 
+################################################################################
+# Model codes returned by the ping command
 MODEL_NUMBER_AX12A = 12
 MODEL_NUMBER_AX12W = 300
 MODEL_NUMBER_AX18A = 18
@@ -21,6 +63,7 @@ MODEL_NUMBER_MX28_2 = 30
 MODEL_NUMBER_MX64_2 = 311
 MODEL_NUMBER_MX106_2 = 321
 
+# Dictionaries to translate model codes to and from human readable form
 g_model_str_to_code_dict = {
     'AX12A': MODEL_NUMBER_AX12A,
     'AX12W': MODEL_NUMBER_AX12W,
@@ -57,6 +100,8 @@ g_model_code_to_str_dict = {
     MODEL_NUMBER_MX106_2: 'MX106_2',
 }
 
+################################################################################
+# EEPROM register addresses
 EEPROM_FIRMWARE_VERSION = 2
 EEPROM_RETURN_DELAY_TIME = 5
 EEPROM_CW_ANGLE_LIMIT = 6
@@ -72,6 +117,8 @@ EEPROM_SHUTDOWN = 18
 MX_EEPROM_MULTI_TURN_OFFSET = 20
 MX_EEPROM_RESOLUTION_DIVIDER = 22
 
+################################################################################
+# RAM register addresses
 RAM_TORQUE_ENABLE = 24
 RAM_LED = 25
 RAM_GOAL_POSITION = 30
@@ -104,6 +151,7 @@ MX64_RAM_CURRENT = 68
 MX64_RAM_TORQUE_CTRL_MODE_ENABLE = 70
 MX64_RAM_GOAL_TORQUE = 71
 
+################################################################################
 # Flags for shutdown and alarmLED registers
 ERROR_BIT_VOLTAGE = 1
 ERROR_BIT_ANGLE_LIMIT = 2
@@ -113,6 +161,8 @@ ERROR_BIT_CHECKSUM = 16
 ERROR_BIT_OVERLOAD = 32
 ERROR_BIT_INSTRUCTION = 64
 
+################################################################################
+# Exception subclass
 class DXLException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -125,7 +175,12 @@ class DXLException(Exception):
     def __str__(self):
         return f"DXL Exception caught on line {self.line} of {self.file}: {self.msg}"
 
+################################################################################
+# Class to manage the connection to the Dynamixel USB controller
 class DXLPort:
+
+    ############################################################################
+    # Class variables
     resultCodeDescriptors = [
         dxl.COMM_SUCCESS: 'OK',
         dxl.COMM_PORT_BUSY: 'PORT_BUSY',
@@ -140,6 +195,27 @@ class DXLPort:
 
     errorBitDescriptors = ['INSTURCTION', 'OVERLOAD', 'CHECKSUM', 'RANGE', 'OVERHEAT', 'ANGLE', 'VOLTAGE']
 
+    ############################################################################
+    # Class method to return string model name given model code
+    # Returns None if code does not correspond to a known model
+    @staticmethod
+    def modelName(code: int):
+        if code in g_model_code_to_str_dict:
+            return g_model_code_to_str_dict[code]
+        return None
+
+    ############################################################################
+    # Class method to return model code given model string name
+    # Returns None if name does not correspond to a known model
+    @staticmethod
+    def modelCode(name: str):
+        if name in g_model_str_to_code_dict:
+            return g_model_str_to_code_dict[name]
+        return None
+
+    ############################################################################
+    # Constructor
+    # Pass in the port name, and the baud rate
     def __init__(self, address: str, baud: int = 57600):
         self.lock = Lock()
         self.baud = baud
@@ -166,11 +242,15 @@ class DXLPort:
 
         self.packetHandler = dxl.PacketHandler(1.0)
 
+    ############################################################################
+    # Destructor
     def __del__(self):
         if self.port != None:
             with self.lock:
                 self.port.closePort()
 
+    ############################################################################
+    # Scans for connected actuators and lists their model numbers and ids
     def scan(self):
         for i in range(254):
             print(f'Pinging {i}')
@@ -179,6 +259,10 @@ class DXLPort:
                 print(f'Found: {i}')
                 self.actuators[i] = actuator
 
+    ############################################################################
+    # Returns a DXL representing the actuator with the given id
+    # If one was previously instantiated, a reference to that one is returned
+    # If no actuator with that id exists, returns None
     def getDXL(self, id: int):
         if id in self.actuators.keys():
             dxl = self.actuators[id]
@@ -196,6 +280,11 @@ class DXLPort:
         else:
             return None
 
+    ############################################################################
+    # Disables torque, sets the goal position to the present position, sets
+    # torque_limit to maximum, and then re-enables torque; this is the
+    # recommended way to recover from an overload error; may not work reliably
+    # on AX models
     def recover(self, id: int):
         with self.syncLock:
             self.writeUInt8(id, RAM_TORQUE_ENABLE, 0)
@@ -204,19 +293,16 @@ class DXLPort:
             self.writeUInt8(id, RAM_TORQUE_LIMIT, 1024)
             self.writeUInt8(id, RAM_TORQUE_ENABLE, 1)
 
-    @staticmethod
-    def modelName(code: int):
-        return g_model_code_to_str_dict[code]
-
-    @staticmethod
-    def modelCode(name: str):
-        return g_model_str_to_code_dict[name]
-
+    ############################################################################
+    # Returns a result string given a result code
     def resultString(self, result: int):
         if result in self.__class__.resultCodeDescriptors:
             return self.__class__.resultCodeDescriptors[result]
         return "UNKNOWN_ERROR"
 
+    ############################################################################
+    # Returns a space delimited list of error strings based on the error flags
+    # set in the error code
     def errorString(self, error: int):
         bit = 1
         errorStr = ""
@@ -226,37 +312,63 @@ class DXLPort:
             bit <<= 1
         return errorStr
 
+    ############################################################################
+    # Sends a ping instruction.
+    # If successful, returns the model code, COMM_SUCCESS, 0
+    # If unsuccessful, returns 0, the result code, and an error code
     def ping(self, id: int):
         with self.lock:
             model, result, error = self.packetHandler.ping(self.port, id)
         return model, result, error
 
+    ############################################################################
+    # Reads from a byte register
+    # If successful, returns the value, COMM_SUCCESS, 0
+    # If unsuccessful, returns 0, the result code, and an error code
     def readUInt8(self, id: int, register: int):
         with self.lock:
             value, result, error = self.packetHandler.read1ByteTxRx(self.port, id, register)
         return value, result, error
 
+    ############################################################################
+    # Reads from a two byte register
+    # If successful, returns the value, COMM_SUCCESS, 0
+    # If unsuccessful, returns 0, the result code, and an error code
     def readUInt16(self, id: int, register: int):
         with self.lock:
             value, result, error = self.packetHandler.read2ByteTxRx(self.port, id, register)
         return value, result, error
 
+    ############################################################################
+    # Writes to a byte register
+    # If successful, returns COMM_SUCCESS, 0
+    # If unsuccessful, returns the result code, and an error code
     def writeUInt8(self, id: int, register: int, value: int):
         with self.lock:
             result, error = self.packetHandler.write1ByteTxRx(self.port, id, register, value)
         return result, error
 
+    ############################################################################
+    # Writes tp a two byte register
+    # If successful, returns COMM_SUCCESS, 0
+    # If unsuccessful, returns the result code, and an error code
     def writeUInt16(self, id: int, register: int, value: int):
         with self.lock:
             result, error = self.packetHandler.write2ByteTxRx(self.port, id, register, value)
         return result, error
 
+    ############################################################################
+    # Opens a sync read session
+    # Pass in the starting register address, and the number of bytes (between 1
+    # and 4)
     def syncReadInit(self, register: int, dataLen: int):
         self.syncLock.acquire()
         self.syncEncoder = dxl.GroupSyncRead(self.port, self.packetHandler, register, dataLen)
         self.syncRegister = register
         self.syncReadDXLs = []
 
+    ############################################################################
+    # Pushes an actuator id into the synch read tx buffer
     def syncReadPush(self, dxl, register: int):
         if self.syncRegister == register:
             if self.syncEncoder.addParam(id):
@@ -264,6 +376,11 @@ class DXLPort:
                 return True
         return False
 
+    ############################################################################
+    # Closes the sync read session and broadcasts the sync read command and
+    # collects the returned data in a { key: value } dictionary.
+    # If successful, returns COMM_SUCCESS, data
+    # If unsuccessful, returns the result code, and an empty dictionary
     def syncReadComplete(self):
         self.syncRegister = None
         result = dxl.COMM_SUCCESS
@@ -277,12 +394,18 @@ class DXLPort:
         self.syncLock.release()
         return result, data
 
+    ############################################################################
+    # Opens a sync write session
+    # Pass in the starting register address, and the number of bytes (between 1
+    # and 4)
     def syncWriteInit(self, register: int, dataLen: int):
         self.syncLock.acquire()
         self.syncEncoder = dxl.GroupSyncWrite(self.port, self.packetHandler, register, dataLen)
         self.syncRegister = register
         self.syncWriteCount = 0
 
+    ############################################################################
+    # Pushes an actuator id, and a value into the synch write tx buffer
     def syncWritePush(self, dxl, register: int, value: int):
         if self.syncRegister == register:
             param = [DXL_LOBYTE(DXL_LOWORD(value)), DXL_HIBYTE(DXL_LOWORD(value)), DXL_LOBYTE(DXL_HIWORD(value)), DXL_HIBYTE(DXL_HIWORD(value))]
@@ -292,6 +415,11 @@ class DXLPort:
             return True
         return False
 
+    ############################################################################
+    # Closes the sync write session and broadcasts the sync write command and
+    # collects the returned data in a { key: value } dictionary.
+    # If successful, returns COMM_SUCCESS
+    # If unsuccessful, returns the result code
     def syncWriteComplete(self):
         self.syncRegister = None
         result = dxl.COMM_SUCCESS
@@ -302,6 +430,9 @@ class DXLPort:
         self.syncLock.release()
         return result
 
+################################################################################
+# Class to wrap register access to Dynamixel actuators
+# Do not instantiate these directly. Call DXLPort.getDXL() instead.
 class DXL:
     def __init__(self, port: DXLPort, id: int, model: int):
         self.port = port
@@ -311,10 +442,22 @@ class DXL:
         self.error = None
         self.offset = 0.0
 
-    def convert(self, register: int, value: int):
-        if register in [RAM_GOAL_POSITION, RAM_PRESENT_POSITION, EEPROM_CW_ANGLE_LIMIT, EEPROM_CCW_ANGLE_LIMIT]:
-            return self.toDegrees(value)
-        return value
+    ############################################################################
+    # Recovers after an overload error
+    def recover(self):
+        self.port.recover(self.id)
+
+    ############################################################################
+    # Returns the model code, the com status, and the error status of the
+    # actuator
+    def ping(self)->(int, int, int):
+        return self.port.ping(self.id)
+
+    ############################################################################
+    # The following are accessors for all the registers for AX, EX, RX and MX
+    # model Dynamixels. Please refer to the Dynamixel e-Manuals for how they
+    # should be interpreted and used. https://emanual.robotis.com/docs/en/dxl/
+    ############################################################################
 
     @property
     def stepResolution(self):
@@ -325,18 +468,6 @@ class DXL:
     def centerOffset(self):
         raise DXLException("centerOffset property needs to be overridden in the base classs")
         return 0
-
-    def recover(self):
-        self.port.recover(self.id)
-
-    def fromDegrees(self, degrees: float)->int:
-        return self.centerOffset + (degrees + self.offset) / self.stepResolution
-
-    def toDegrees(self, steps: int)->float:
-        return (steps - self.centerOffset) * step.stepResolution - self.offset
-
-    def ping(self)->(int, int, int):
-        return self.port.ping(self.id)
 
     @property
     def firmwareVersion(self):
@@ -593,6 +724,35 @@ class DXL:
     def punch(self, value: int):
         if self.port.syncWritePush(self, RAM_PUNCH, value): return
         self.result, self.error = self.port.writeUInt16(self.id, RAM_PUNCH, value)
+
+    ############################################################################
+    # Helper methods
+    # Not intended for general use.
+    ############################################################################
+    # Conversion of goal_position, present_position and angle limit registers
+    # from actuator step units into degrees. This angle is calculated as
+    #
+    #   (<position> - <center offset>) * <actuator step resolution> - <user offset>
+    #
+    # Where
+    # <position> is the actuator position (goal, present, or angle limit)
+    # <center offset> is the offset from zero at which the notch on the
+    #       dynamixel horn is aligned with the notch on the case
+    # <actuator step resolution> is the angle in degrees for each step of the
+    #       actuator
+    # <user offset> is a user settable offset angle in degrees
+    #
+    # This function will simply pass the value back for other registers.
+    def convert(self, register: int, value: int):
+        if register in [RAM_GOAL_POSITION, RAM_PRESENT_POSITION, EEPROM_CW_ANGLE_LIMIT, EEPROM_CCW_ANGLE_LIMIT]:
+            return self.toDegrees(value)
+        return value
+
+    def fromDegrees(self, degrees: float)->int:
+        return self.centerOffset + (degrees + self.offset) / self.stepResolution
+
+    def toDegrees(self, steps: int)->float:
+        return (steps - self.centerOffset) * step.stepResolution - self.offset
 
 class DXL_AX(DXL):
     @DXL.stepResolution.getter # Python's oop implementation is so fucking weird
