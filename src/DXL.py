@@ -431,7 +431,7 @@ class DXLPort:
         return result
 
 ################################################################################
-# Class to wrap register access to Dynamixel actuators
+# Classes to wrap register access to Dynamixel actuators
 # Do not instantiate these directly. Call DXLPort.getDXL() instead.
 class DXL:
     def __init__(self, port: DXLPort, id: int, model: int):
@@ -754,6 +754,8 @@ class DXL:
     def toDegrees(self, steps: int)->float:
         return (steps - self.centerOffset) * step.stepResolution - self.offset
 
+################################################################################
+# Accessors to registers unique to AX, RX and EX models
 class DXL_AX(DXL):
     @DXL.stepResolution.getter # Python's oop implementation is so fucking weird
     def stepResolution(self):
@@ -806,6 +808,8 @@ class DXL_AX(DXL):
         if self.port.syncWritePush(self, AX_RAM_CCW_COMPLIANCE_SLOPE, value): return
         self.result, self.error = self.port.writeUInt8(self.id, AX_RAM_CCW_COMPLIANCE_SLOPE, value)
 
+################################################################################
+# Accessors to registers unique to the EX model
 class DXL_EX(DXL_AX):
     @DXL_AX.stepResolution.getter
     def stepResolution(self):
@@ -821,6 +825,8 @@ class DXL_EX(DXL_AX):
         value, self.result, self.error = self.port.readUInt16(self.id, EX_RAM_SENSED_CURRENT)
         return value
 
+################################################################################
+# Accessors to registers unique to MX models
 class DXL_MX(DXL):
     @DXL.stepResolution.getter
     def stepResolution(self):
@@ -902,6 +908,8 @@ class DXL_MX(DXL):
         if self.port.syncWritePush(self, MX_RAM_GOAL_ACCELERATION, value): return
         self.result, self.error = self.port.writeUInt8(self.id, MX_RAM_GOAL_ACCELERATION, value)
 
+################################################################################
+# Accessors to registers unique to the MX64 and MX106 models
 class DXL_MX64(DXL_MX):
     @property
     def current(self):
