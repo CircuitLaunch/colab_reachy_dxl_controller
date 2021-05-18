@@ -63,43 +63,6 @@ MODEL_NUMBER_MX28_2 = 30
 MODEL_NUMBER_MX64_2 = 311
 MODEL_NUMBER_MX106_2 = 321
 
-# Dictionaries to translate model codes to and from human readable form
-g_model_str_to_code_dict = {
-    'AX12A': MODEL_NUMBER_AX12A,
-    'AX12W': MODEL_NUMBER_AX12W,
-    'AX18A': MODEL_NUMBER_AX18A,
-    'EX106': MODEL_NUMBER_EX106,
-    'RX10': MODEL_NUMBER_RX10,
-    'RX24F': MODEL_NUMBER_RX24F,
-    'RX28': MODEL_NUMBER_RX28,
-    'RX64': MODEL_NUMBER_RX64,
-    'MX12W': MODEL_NUMBER_MX12W,
-    'MX28': MODEL_NUMBER_MX28,
-    'MX64': MODEL_NUMBER_MX64,
-    'MX106': MODEL_NUMBER_MX106,
-    'MX28_2': MODEL_NUMBER_MX28_2,
-    'MX64_2': MODEL_NUMBER_MX64_2,
-    'MX106_2': MODEL_NUMBER_MX106_2,
-}
-
-g_model_code_to_str_dict = {
-    MODEL_NUMBER_AX12A: 'AX12A',
-    MODEL_NUMBER_AX12W: 'AX12W',
-    MODEL_NUMBER_AX18A: 'AX18A',
-    MODEL_NUMBER_RX10: 'RX10',
-    MODEL_NUMBER_EX106: 'EX106',
-    MODEL_NUMBER_RX24F: 'RX24F',
-    MODEL_NUMBER_RX28: 'RX28',
-    MODEL_NUMBER_RX64: 'RX64',
-    MODEL_NUMBER_MX12W: 'MX12W',
-    MODEL_NUMBER_MX28: 'MX28',
-    MODEL_NUMBER_MX64: 'MX64',
-    MODEL_NUMBER_MX106: 'MX106',
-    MODEL_NUMBER_MX28_2: 'MX28_2',
-    MODEL_NUMBER_MX64_2: 'MX64_2',
-    MODEL_NUMBER_MX106_2: 'MX106_2',
-}
-
 ################################################################################
 # EEPROM register addresses
 EEPROM_FIRMWARE_VERSION = 2
@@ -162,6 +125,60 @@ ERROR_BIT_OVERLOAD = 32
 ERROR_BIT_INSTRUCTION = 64
 
 ################################################################################
+# Dictionaries to translate model codes to and from human readable form
+gModelStrToCodeDict = {
+    'AX12A': MODEL_NUMBER_AX12A,
+    'AX12W': MODEL_NUMBER_AX12W,
+    'AX18A': MODEL_NUMBER_AX18A,
+    'EX106': MODEL_NUMBER_EX106,
+    'RX10': MODEL_NUMBER_RX10,
+    'RX24F': MODEL_NUMBER_RX24F,
+    'RX28': MODEL_NUMBER_RX28,
+    'RX64': MODEL_NUMBER_RX64,
+    'MX12W': MODEL_NUMBER_MX12W,
+    'MX28': MODEL_NUMBER_MX28,
+    'MX64': MODEL_NUMBER_MX64,
+    'MX106': MODEL_NUMBER_MX106,
+    'MX28_2': MODEL_NUMBER_MX28_2,
+    'MX64_2': MODEL_NUMBER_MX64_2,
+    'MX106_2': MODEL_NUMBER_MX106_2,
+}
+
+gModelCodeToStrDict = {
+    MODEL_NUMBER_AX12A: 'AX12A',
+    MODEL_NUMBER_AX12W: 'AX12W',
+    MODEL_NUMBER_AX18A: 'AX18A',
+    MODEL_NUMBER_RX10: 'RX10',
+    MODEL_NUMBER_EX106: 'EX106',
+    MODEL_NUMBER_RX24F: 'RX24F',
+    MODEL_NUMBER_RX28: 'RX28',
+    MODEL_NUMBER_RX64: 'RX64',
+    MODEL_NUMBER_MX12W: 'MX12W',
+    MODEL_NUMBER_MX28: 'MX28',
+    MODEL_NUMBER_MX64: 'MX64',
+    MODEL_NUMBER_MX106: 'MX106',
+    MODEL_NUMBER_MX28_2: 'MX28_2',
+    MODEL_NUMBER_MX64_2: 'MX64_2',
+    MODEL_NUMBER_MX106_2: 'MX106_2',
+}
+
+############################################################################
+# Result code and error bit dictionaries
+gResultCodeDescriptors = [
+    dxl.COMM_SUCCESS: 'OK',
+    dxl.COMM_PORT_BUSY: 'PORT_BUSY',
+    dxl.COMM_TX_FAIL: 'TX_FAIL',
+    dxl.COMM_RX_FAIL: 'RX_FAIL',
+    dxl.COMM_TX_ERROR: 'TX_ERROR',
+    dxl.COMM_RX_WAITING: 'RX_WAITING',
+    dxl.COMM_RX_TIMEOUT: 'RX_TIMEOUT',
+    dxl.COMM_RX_CORRUPT: 'RX_CORRUPT',
+    dxl.COMM_NOT_AVAILABLE: 'NOT_AVAILABLE'
+]
+
+gErrorBitDescriptors = ['INSTURCTION', 'OVERLOAD', 'CHECKSUM', 'RANGE', 'OVERHEAT', 'ANGLE', 'VOLTAGE']
+
+################################################################################
 # Exception subclass
 class DXLException(Exception):
     def __init__(self, msg):
@@ -178,30 +195,13 @@ class DXLException(Exception):
 ################################################################################
 # Class to manage the connection to the Dynamixel USB controller
 class DXLPort:
-
-    ############################################################################
-    # Class variables
-    resultCodeDescriptors = [
-        dxl.COMM_SUCCESS: 'OK',
-        dxl.COMM_PORT_BUSY: 'PORT_BUSY',
-        dxl.COMM_TX_FAIL: 'TX_FAIL',
-        dxl.COMM_RX_FAIL: 'RX_FAIL',
-        dxl.COMM_TX_ERROR: 'TX_ERROR',
-        dxl.COMM_RX_WAITING: 'RX_WAITING',
-        dxl.COMM_RX_TIMEOUT: 'RX_TIMEOUT',
-        dxl.COMM_RX_CORRUPT: 'RX_CORRUPT',
-        dxl.COMM_NOT_AVAILABLE: 'NOT_AVAILABLE'
-    ]
-
-    errorBitDescriptors = ['INSTURCTION', 'OVERLOAD', 'CHECKSUM', 'RANGE', 'OVERHEAT', 'ANGLE', 'VOLTAGE']
-
     ############################################################################
     # Class method to return string model name given model code
     # Returns None if code does not correspond to a known model
     @staticmethod
     def modelName(code: int):
-        if code in g_model_code_to_str_dict:
-            return g_model_code_to_str_dict[code]
+        if code in gModelCodeToStrDict:
+            return gModelCodeToStrDict[code]
         return None
 
     ############################################################################
@@ -209,8 +209,8 @@ class DXLPort:
     # Returns None if name does not correspond to a known model
     @staticmethod
     def modelCode(name: str):
-        if name in g_model_str_to_code_dict:
-            return g_model_str_to_code_dict[name]
+        if name in gModelStrToCodeDict:
+            return gModelStrToCodeDict[name]
         return None
 
     ############################################################################
@@ -296,8 +296,8 @@ class DXLPort:
     ############################################################################
     # Returns a result string given a result code
     def resultString(self, result: int):
-        if result in self.__class__.resultCodeDescriptors:
-            return self.__class__.resultCodeDescriptors[result]
+        if result in gResultCodeDescriptors:
+            return gResultCodeDescriptors[result]
         return "UNKNOWN_ERROR"
 
     ############################################################################
@@ -306,7 +306,7 @@ class DXLPort:
     def errorString(self, error: int):
         bit = 1
         errorStr = ""
-        for errorBitDescriptor in self.__class__.errorBitDescriptors:
+        for errorBitDescriptor in gErrorBitDescriptors:
             if error & bit:
                 errorStr += ('' if errorStr == '' else ' ') + errorBitDescriptor
             bit <<= 1
