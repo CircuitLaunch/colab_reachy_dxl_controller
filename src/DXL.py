@@ -265,12 +265,11 @@ class DXLPort:
     # If one was previously instantiated, a reference to that one is returned
     # If no actuator with that id exists, returns None
     def getDXL(self, id: int, callback = None):
-        dxl = None
         with self.actuatorLock:
             if id in self.actuators.keys():
                 dxl = self.actuators[id]
-        if dxl != None:
-            return dxl
+                if callback == None: dxl.callback = callback
+                return dxl
 
         model, result, error = self.ping(id)
         if model in [MODEL_NUMBER_AX12A, MODEL_NUMBER_AX12W, MODEL_NUMBER_AX18A, MODEL_NUMBER_RX10, MODEL_NUMBER_RX24F, MODEL_NUMBER_RX28, MODEL_NUMBER_RX64]:
@@ -281,10 +280,11 @@ class DXLPort:
             dxl = DXL_MX(self, id, model, callback)
         elif model in [MODEL_NUMBER_MX64, MODEL_NUMBER_MX106]:
             dxl = DXL_MX64(self, id, model, callback)
+        else:
+            return None
 
-        if dxl != None:
-            with self.actuatorLock:
-                self.actuators[id] = dxl
+        with self.actuatorLock:
+            self.actuators[id] = dxl
 
         return dxl
 
