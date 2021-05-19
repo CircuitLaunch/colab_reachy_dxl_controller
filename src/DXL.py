@@ -176,7 +176,7 @@ gResultCodeDescriptors = [
     dxl.COMM_NOT_AVAILABLE: 'NOT_AVAILABLE'
 ]
 
-gErrorBitDescriptors = ['INSTURCTION', 'OVERLOAD', 'CHECKSUM', 'RANGE', 'OVERHEAT', 'ANGLE', 'VOLTAGE']
+gErrorBitDescriptors = ['INSTRUCTION', 'OVERLOAD', 'CHECKSUM', 'RANGE', 'OVERHEAT', 'ANGLE', 'VOLTAGE']
 
 ################################################################################
 # Exception subclass
