@@ -86,19 +86,11 @@ class ReachyActionServer:
         ]
 
         # Blast disable torque instruction to all the servos
-        self.u2d2.syncWriteInit(RAM_TORQUE_ENABLE, 1)
-        for dxl in self.reachyDXLs.values():
-            if dxl != None:
-                dxl.enableTorque = 0
-        self.u2d2.syncWriteComplete()
+        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys())))
 
         # Should we?
         '''
-        self.u2d2.syncWriteInit(EEPROM_RETURN_DELAY_TIME, 1)
-        for dxl in self.reachyDXLs.values():
-            if dxl != None:
-                dxl.returnDelayTime = 0
-        self.u2d2.syncWriteComplete()
+        result = self.u2d2.syncWrite(EEPROM_RETURN_DELAY_TIME, 1, zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys()))
         '''
 
         # Create a joint state publisher
@@ -109,7 +101,7 @@ class ReachyActionServer:
 
         self.reportJointStatus = rospy.Service('report_joint_status', ReportJointStatus, self.reportJointStatus)
         self.reportJointTemperatures = rospy.Service('report_joint_temperatures', ReportJointTemperatures, self.reportJointTemperatures)
-        
+
         # Create a set compliance services
         self.rightArmComplianceService = rospy.Service('right_arm_controller/set_arm_compliant', SetBool, self.setRightArmCompliance)
         self.leftArmComplianceService = rospy.Service('left_arm_controller/set_arm_compliant', SetBool, self.setLeftArmCompliance)
@@ -143,11 +135,7 @@ class ReachyActionServer:
     ############################################################################
     def onShutdown(self):
         # Blast disable torque instruction to all the servos
-        self.u2d2.syncWriteInit(RAM_TORQUE_ENABLE, 1)
-        for dxl in self.reachyDXLs.values():
-            if dxl != None:
-                dxl.enableTorque = 0
-        self.u2d2.syncWriteComplete()
+        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys())))
         rospy.sleep(1.0)
 
     ############################################################################
@@ -176,10 +164,9 @@ class ReachyActionServer:
         else:
             return SetBoolResponse(success=False, message=f'{side} is not a valid side specification')
 
-        self.u2d2.syncWriteInit(RAM_TORQUE_ENABLE, 1)
-        for name in jointNames:
-            self.reachyDXLs[name].enableTorque = 0 if value.data else 1
-        self.u2d2.syncWriteComplete()
+        ids = [self.reachyDXLs[name].id for name in jointNames]
+        bit = 0 if value.data else 1
+        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, zip(ids, [bit] * len(ids)))
 
         return SetBoolResponse(success=True, message=f'{side} arm compliance set to {"True" if value.data else "False"}')
 
@@ -202,19 +189,16 @@ class ReachyActionServer:
         else:
             return SetBoolResponse(success=False, message=f'{side} is not a valid side specification')
 
-        self.u2d2.syncWriteInit(RAM_TORQUE_ENABLE, 1)
-        for name in jointNames:
-            self.reachyDXLs[name].enableTorque = 0 if value.data else 1
-        self.u2d2.syncWriteComplete()
+        ids = [self.reachyDXLs[name].id for name in jointNames]
+        bit = 0 if value.data else 1
+        result = self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1. zip(ids, [bit] * len(ids)))
 
         return SetBoolResponse(success=True, message=f'{side} gripper compliance set to {"True" if value.data else "False"}')
 
     ############################################################################
     def getCurrentPositions(self, jointNames: List[str]):
-        self.u2d2.syncReadInit(RAM_PRESENT_POSITION, 2)
-        for name in jointNames:
-            self.reachyDXLs[name].presentPosition
-        data = self.u2d2.syncReadComplete()
+        ids = [self.reachyDXLs[name].id for name in jointNames]
+        result, data = self.u2d2.syncRead(RAM_PRESENT_POSITION, 2, ids)
         return [math.radians(data[self.reachyDXLs[name].id]) for name in jointNames]
 
     ############################################################################
@@ -273,10 +257,10 @@ class ReachyActionServer:
             if name not in self.reachyDXLs.keys():
                 rospy.logerr(f'{self.name}: Joint "{name}" not found')
                 return false
-            # TODO: check for compliance
-            self.u2d2.syncWriteInit(RAM_GOAL_POSITION, 2)
-            self.reachyDXLs[name].goalPosition = math.degrees(float(point.positions[i]))
-            self.u2d2.syncWriteComplete()
+        # TODO: check for compliance
+        ids = [self.reachyDXLs[name].id for name in jointNames]
+        positions = [math.degrees(float(point.positions[i])) for i in range(len(point.positions))]
+        self.u2d2.syncWrite(RAM_GOAL_POSITION, 2, zip(ids, positions))
 
     ############################################################################
     def updateFeedback(self, cmdPoint: JointTrajectoryPoint, jointNames: List[str], currentTime: float):
@@ -344,10 +328,9 @@ class ReachyActionServer:
         jointTemperatures = JointTemperaturesResponse()
         jointTemperatures.header.stamp = rospy.Time.now()
         jointTemperatures.name = request.name
-        self.u2d2.syncReadInit(RAM_PRESENT_TEMPERATURE, 1)
-        for name in request.name:
-            self.reachyDXLs[name].presentTemperature
-        data = self.u2d2.syncReadComplete()
+
+        result, data = self.u2d2.syncRead(RAM_PRESENT_TEMPERATURE, 1, [self.reachyDXLs[name].id for name in request.name])
+
         jointTemperatures.temperature = [data[self.reachyDXLs[name].id] for name in request.name]
 
     ############################################################################

@@ -222,6 +222,7 @@ class DXLPort:
         self.port = None
         port = dxl.PortHandler(address)
         self.actuators = {}
+        self.actuatorLock = Lock()
         self.syncRegister = None
         self.syncLock = Lock()
         self.syncEncoder = None
@@ -264,21 +265,28 @@ class DXLPort:
     # If one was previously instantiated, a reference to that one is returned
     # If no actuator with that id exists, returns None
     def getDXL(self, id: int):
-        if id in self.actuators.keys():
-            dxl = self.actuators[id]
+        dxl = None
+        with self.actuatorLock:
+            if id in self.actuators.keys():
+                dxl = self.actuators[id]
+        if dxl != None:
             return dxl
 
         model, result, error = self.ping(id)
         if model in [MODEL_NUMBER_AX12A, MODEL_NUMBER_AX12W, MODEL_NUMBER_AX18A, MODEL_NUMBER_RX10, MODEL_NUMBER_RX24F, MODEL_NUMBER_RX28, MODEL_NUMBER_RX64]:
-            return DXL_AX(self, id, model)
+            dxl = DXL_AX(self, id, model)
         elif model == MODEL_NUMBER_EX106:
-            return DXL_EX(self, id, model)
+            dxl = DXL_EX(self, id, model)
         elif model in [MODEL_NUMBER_MX12W, MODEL_NUMBER_MX28]:
-            return DXL_MX(self, id, model)
+            dxl = DXL_MX(self, id, model)
         elif model in [MODEL_NUMBER_MX64, MODEL_NUMBER_MX106]:
-            return DXL_MX64(self, id, model)
-        else:
-            return None
+            dxl = DXL_MX64(self, id, model)
+
+        if dxl != None:
+            with self.actuatorLock:
+                self.actuators[id] = dxl
+
+        return dxl
 
     ############################################################################
     # Disables torque, sets the goal position to the present position, sets
@@ -413,7 +421,7 @@ class DXLPort:
     def syncWrite(self, register: int, dataLen: int, dataDict):
         self.syncWriteInit(register, dataLen)
         for (id, value) in dataDict.items():
-            if id in self.actuators
+            if id in self.actuators:
                 self.syncWritePush(self.actuators[id], register, value)
         return self.syncWriteComplete()
 
