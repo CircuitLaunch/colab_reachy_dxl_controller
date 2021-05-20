@@ -419,7 +419,7 @@ class DXLPort:
             with self.lock:
                 result = self.syncEncoder.txRxPacket()
             if result == sdk.COMM_SUCCESS:
-                data = { dxl.id: dxl.convert(self.syncRegister, self.syncEncoder.getData(dxl.id, self.syncRegister, self.syncDataLen)) for dxl in self.syncReadDXLs }
+                data = { dxl.id: dxl.convertFromNative(self.syncRegister, self.syncEncoder.getData(dxl.id, self.syncRegister, self.syncDataLen)) for dxl in self.syncReadDXLs }
         self.syncEncoder = None
         self.syncReadDXLs = None
         self.syncLock.release()
@@ -450,9 +450,10 @@ class DXLPort:
 
     ############################################################################
     # Pushes an actuator id, and a value into the synch write tx buffer
-    def syncWritePush(self, dxl, register: int, value: int):
+    def syncWritePush(self, dxl, register: int, value):
         if self.syncRegister == register:
-            param = [sdk.DXL_LOBYTE(sdk.DXL_LOWORD(value)), sdk.DXL_HIBYTE(sdk.DXL_LOWORD(value)), sdk.DXL_LOBYTE(sdk.DXL_HIWORD(value)), sdk.DXL_HIBYTE(sdk.DXL_HIWORD(value))]
+            nativeValue = dxl.convertToNative(value)
+            param = [sdk.DXL_LOBYTE(sdk.DXL_LOWORD(nativeValue)), sdk.DXL_HIBYTE(sdk.DXL_LOWORD(nativeValue)), sdk.DXL_LOBYTE(sdk.DXL_HIWORD(nativeValue)), sdk.DXL_HIBYTE(sdk.DXL_HIWORD(nativeValue))]
             if not self.syncEncoder.addParam(dxl.id, param[0:self.syncDataLen]):
                 return False
             self.syncWriteCount += 1
@@ -831,9 +832,14 @@ class DXL:
     # <user offset> is a user settable offset angle in degrees
     #
     # This function will simply pass the value back for other registers.
-    def convert(self, register: int, value: int):
+    def convertFromNative(self, register: int, value: int):
         if register in [RAM_GOAL_POSITION, RAM_PRESENT_POSITION, EEPROM_CW_ANGLE_LIMIT, EEPROM_CCW_ANGLE_LIMIT]:
             return self.toDegrees(value)
+        return value
+
+    def convertToNative(self, register: int, value):
+        if register in [RAM_GOAL_POSITION, RAM_PRESENT_POSITION, EEPROM_CW_ANGLE_LIMIT, EEPROM_CCW_ANGLE_LIMIT]:
+            return self.fromDegrees(value)
         return value
 
     def fromDegrees(self, degrees: float)->int:
