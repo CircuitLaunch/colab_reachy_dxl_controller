@@ -47,50 +47,50 @@ class ReachyActionServer:
 
         # Obtain references to all the actuators
         self.reachyDXLs = OrderedDict()
-        self.reachyDXLs['right_shoulder_pitch'] = self.u2d2.getDXL(10)
-        self.reachyDXLs['right_shoulder_roll'] = self.u2d2.getDXL(11)
-        self.reachyDXLs['right_arm_yaw'] = self.u2d2.getDXL(12)
-        self.reachyDXLs['right_elbow_pitch'] = self.u2d2.getDXL(13)
-        self.reachyDXLs['right_forearm_yaw'] = self.u2d2.getDXL(14)
-        self.reachyDXLs['right_wrist_pitch'] = self.u2d2.getDXL(15)
-        self.reachyDXLs['right_wrist_roll'] = self.u2d2.getDXL(16)
-        self.reachyDXLs['right_gripper'] = self.u2d2.getDXL(17)
+        self.reachyDXLs['r_shoulder_pitch'] = self.u2d2.getDXL(10)
+        self.reachyDXLs['r_shoulder_roll'] = self.u2d2.getDXL(11)
+        self.reachyDXLs['r_arm_yaw'] = self.u2d2.getDXL(12)
+        self.reachyDXLs['r_elbow_pitch'] = self.u2d2.getDXL(13)
+        self.reachyDXLs['r_forearm_yaw'] = self.u2d2.getDXL(14)
+        self.reachyDXLs['r_wrist_pitch'] = self.u2d2.getDXL(15)
+        self.reachyDXLs['r_wrist_roll'] = self.u2d2.getDXL(16)
+        self.reachyDXLs['r_gripper'] = self.u2d2.getDXL(17)
 
-        self.reachyDXLs['left_shoulder_pitch'] = self.u2d2.getDXL(20)
-        self.reachyDXLs['left_shoulder_roll'] = self.u2d2.getDXL(21)
-        self.reachyDXLs['left_arm_yaw'] = self.u2d2.getDXL(22)
-        self.reachyDXLs['left_elbow_pitch'] = self.u2d2.getDXL(23)
-        self.reachyDXLs['left_forearm_yaw'] = self.u2d2.getDXL(24)
-        self.reachyDXLs['left_wrist_pitch'] = self.u2d2.getDXL(25)
-        self.reachyDXLs['left_wrist_roll'] = self.u2d2.getDXL(26)
-        self.reachyDXLs['left_gripper'] = self.u2d2.getDXL(27)
+        self.reachyDXLs['l_shoulder_pitch'] = self.u2d2.getDXL(20)
+        self.reachyDXLs['l_shoulder_roll'] = self.u2d2.getDXL(21)
+        self.reachyDXLs['l_arm_yaw'] = self.u2d2.getDXL(22)
+        self.reachyDXLs['l_elbow_pitch'] = self.u2d2.getDXL(23)
+        self.reachyDXLs['l_forearm_yaw'] = self.u2d2.getDXL(24)
+        self.reachyDXLs['l_wrist_pitch'] = self.u2d2.getDXL(25)
+        self.reachyDXLs['l_wrist_roll'] = self.u2d2.getDXL(26)
+        self.reachyDXLs['l_gripper'] = self.u2d2.getDXL(27)
 
         self.rightArm = [
-            'right_shoulder_pitch',
-            'right_shoulder_roll',
-            'right_arm_yaw',
-            'right_elbow_pitch',
-            'right_forearm_yaw',
-            'right_wrist_pitch',
-            'right_wrist_roll'
+            'r_shoulder_pitch',
+            'r_shoulder_roll',
+            'r_arm_yaw',
+            'r_elbow_pitch',
+            'r_forearm_yaw',
+            'r_wrist_pitch',
+            'r_wrist_roll'
         ]
 
         self.leftArm = [
-            'left_shoulder_pitch',
-            'left_shoulder_roll',
-            'left_arm_yaw',
-            'left_elbow_pitch',
-            'left_forearm_yaw',
-            'left_wrist_pitch',
-            'left_wrist_roll'
+            'l_shoulder_pitch',
+            'l_shoulder_roll',
+            'l_arm_yaw',
+            'l_elbow_pitch',
+            'l_forearm_yaw',
+            'l_wrist_pitch',
+            'l_wrist_roll'
         ]
 
         # Blast disable torque instruction to all the servos
-        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys())))
+        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, dict(zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys()))))
 
         # Should we?
         '''
-        result = self.u2d2.syncWrite(EEPROM_RETURN_DELAY_TIME, 1, zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys()))
+        result = self.u2d2.syncWrite(EEPROM_RETURN_DELAY_TIME, 1, dict(zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys())))
         '''
 
         # Create a joint state publisher
@@ -103,10 +103,10 @@ class ReachyActionServer:
         self.reportJointTemperatures = rospy.Service('report_joint_temperatures', ReportJointTemperatures, self.reportJointTemperatures)
 
         # Create a set compliance services
-        self.rightArmComplianceService = rospy.Service('right_arm_controller/set_arm_compliant', SetBool, self.setRightArmCompliance)
-        self.leftArmComplianceService = rospy.Service('left_arm_controller/set_arm_compliant', SetBool, self.setLeftArmCompliance)
-        self.rightGripperComplianceService = rospy.Service('right_arm_controller/set_gripper_compliant', SetBool, self.setRightGripperCompliance)
-        self.leftGripperComplianceService = rospy.Service('left_arm_controller/set_gripper_compliant', SetBool, self.setLeftGripperCompliance)
+        self.rightArmComplianceService = rospy.Service('right_arm_set_compliant', SetBool, self.setRightArmCompliance)
+        self.leftArmComplianceService = rospy.Service('left_arm_set_compliant', SetBool, self.setLeftArmCompliance)
+        self.rightGripperComplianceService = rospy.Service('right_gripper_set_compliant', SetBool, self.setRightGripperCompliance)
+        self.leftGripperComplianceService = rospy.Service('left_gripper_set_compliant', SetBool, self.setLeftGripperCompliance)
 
         # Create and start an action servers
         self.rightArmActionServer = actionlib.SimpleActionServer(
@@ -135,7 +135,7 @@ class ReachyActionServer:
     ############################################################################
     def onShutdown(self):
         # Blast disable torque instruction to all the servos
-        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys())))
+        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, dict(zip(self.reachyDXLs.keys(), [0] * len(self.reachyDXLs.keys()))))
         rospy.sleep(1.0)
 
     ############################################################################
@@ -164,9 +164,9 @@ class ReachyActionServer:
         else:
             return SetBoolResponse(success=False, message=f'{side} is not a valid side specification')
 
-        ids = [self.reachyDXLs[name].id for name in jointNames]
+        ids = [self.reachyDXLs[name].id for name in list(set(jointNames) & set(self.reachyDXLs.keys()))]
         bit = 0 if value.data else 1
-        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, zip(ids, [bit] * len(ids)))
+        self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, dict(zip(ids, [bit] * len(ids))))
 
         return SetBoolResponse(success=True, message=f'{side} arm compliance set to {"True" if value.data else "False"}')
 
@@ -189,17 +189,19 @@ class ReachyActionServer:
         else:
             return SetBoolResponse(success=False, message=f'{side} is not a valid side specification')
 
-        ids = [self.reachyDXLs[name].id for name in jointNames]
+        ids = [self.reachyDXLs[name].id for name in list(set(jointNames) & set(self.reachyDXLs.keys()))]
         bit = 0 if value.data else 1
-        result = self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1. zip(ids, [bit] * len(ids)))
+        result = self.u2d2.syncWrite(RAM_TORQUE_ENABLE, 1, dict(zip(ids, [bit] * len(ids))))
 
         return SetBoolResponse(success=True, message=f'{side} gripper compliance set to {"True" if value.data else "False"}')
 
     ############################################################################
     def getCurrentPositions(self, jointNames: List[str]):
-        ids = [self.reachyDXLs[name].id for name in jointNames]
-        result, data = self.u2d2.syncRead(RAM_PRESENT_POSITION, 2, ids)
-        return [math.radians(data[self.reachyDXLs[name].id]) for name in jointNames]
+        # ids = [self.reachyDXLs[name].id for name in jointNames]
+        # syncRead not available in protocol 1.0
+        # result, data = self.u2d2.syncRead(RAM_PRESENT_POSITION, 2, ids)
+        # return [math.radians(data[self.reachyDXLs[name].id]) for name in jointNames]
+        return [math.radians(self.reachyDXLs[name].presentPosition) for name in list(set(jointNames) & set(self.reachyDXLs.keys()))]
 
     ############################################################################
     def getTrajectoryComponents(self, trajectories: List[JointTrajectoryPoint]):
@@ -253,23 +255,26 @@ class ReachyActionServer:
         if len(jointNames) != len(point.positions):
             rospy.logerr(f'{self.name}: Joint name and trajectory point mismatch')
             return false
+        '''
         for i, name in enumerate(jointNames):
             if name not in self.reachyDXLs.keys():
                 rospy.logerr(f'{self.name}: Joint "{name}" not found')
                 return false
+        '''
         # TODO: check for compliance
-        ids = [self.reachyDXLs[name].id for name in jointNames]
+        ids = [self.reachyDXLs[name].id for name in list(set(jointNames) & set(self.reachyDXLs.keys()))]
         positions = [math.degrees(float(point.positions[i])) for i in range(len(point.positions))]
-        self.u2d2.syncWrite(RAM_GOAL_POSITION, 2, zip(ids, positions))
+        self.u2d2.syncWrite(RAM_GOAL_POSITION, 2, dict(zip(ids, positions)))
 
     ############################################################################
     def updateFeedback(self, cmdPoint: JointTrajectoryPoint, jointNames: List[str], currentTime: float):
-        actualPositions = self.getCurrentPositions(jointNames)
+        validJointNames = list(set(jointNames) & set(self.reachyDXLs.keys()))
+        actualPositions = self.getCurrentPositions(validJointNames)
         currentROSTime = rospy.Duration.from_sec(currentTime)
 
         feedback = FollowJointTrajectoryFeedback()
         feedback.header.stamp = rospy.Duration.from_sec(rospy.get_time())
-        feedback.joint_names = jointNames
+        feedback.joint_names = validJointNames
         feedback.desired = cmdPoint
         feedback.desired.time_from_start = currentROSTime
         feedback.actual.positions = actualPositions
@@ -278,6 +283,7 @@ class ReachyActionServer:
         self.actionServer.publish_feedback(feedback)
         rospy.logdebug(f'{self.name}: Current positions [{actualPositions}]')
 
+    '''
     ############################################################################
     def reportJointState(self):
         # TODO: need to check for invalid names and None DXL references
@@ -294,6 +300,7 @@ class ReachyActionServer:
             self.leftArmJointStatePublisher.publish(jointState)
         except ROSException:
             pass
+    '''
 
     ############################################################################
     def reportJointStatus(self, request: ReportJointStatus):
@@ -303,24 +310,18 @@ class ReachyActionServer:
         jointStatus.model = []
         jointStatus.status = []
         jointStatus.error = []
-        for name in request.name:
-            modelStr = 'N/A'
-            resultStr = 'Does not exist'
-            errorStr = ''
+        validNames = list(set(request.name) & set(self.reachyDXLs.keys()))
+        for name in validNames:
             dxl = self.reachyDXLs[name]
-            if dxl != None:
-                model, result, error = dxl.ping()
-                modelStr = DXLPort.modelName(model)
-                resultStr = self.u2d2.resultString(result)
-                errorStr = self.u2d2.errorString(error)
+            model, result, error = dxl.ping()
+            modelStr = DXLPort.modelName(model)
+            resultStr = self.u2d2.resultString(result)
+            errorStr = self.u2d2.errorString(error)
             jointStatus.name.append(name)
             jointStatus.model.append(modelStr)
             jointStatus.status.append(resultStr)
             jointStatus.status.append(errorStr)
-        try:
-            self.jointStatusPublisher.publish(jointStatus)
-        except ROSException:
-            pass
+        return jointStatus
 
     ############################################################################
     def reportJointTemperatures(self, request: ReportJointTemperatures):
@@ -328,10 +329,12 @@ class ReachyActionServer:
         jointTemperatures = JointTemperaturesResponse()
         jointTemperatures.header.stamp = rospy.Time.now()
         jointTemperatures.name = request.name
-
-        result, data = self.u2d2.syncRead(RAM_PRESENT_TEMPERATURE, 1, [self.reachyDXLs[name].id for name in request.name])
-
-        jointTemperatures.temperature = [data[self.reachyDXLs[name].id] for name in request.name]
+        # syncRead not available in protocol 1.0
+        # result, data = self.u2d2.syncRead(RAM_PRESENT_TEMPERATURE, 1, [self.reachyDXLs[name].id for name in request.name])
+        #jointTemperatures.temperature = [data[self.reachyDXLs[name].id] for name in request.name]
+        data = [self.reachyDXLs[name].presentTemperature for name in list(set(request.name) & set(self.reachyDXLs.keys()))]
+        jointTemperatures.temperature = data
+        return jointTemperatures
 
     ############################################################################
     def actionServerCallback(self, goal: FollowJointTrajectoryGoal):
